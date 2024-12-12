@@ -1,0 +1,47 @@
+{
+  "id": "{{ RANDOM_UUID }}",
+  "site": {
+    "id": "{{ CLIENT_ID }}",
+    "ref": "http://example.com",
+    "publisher": {
+      "name": "example.com",
+      "id": "{{ CLIENT_ID }}"
+    },
+    "name": "{{ CLIENT_ID }}"
+  },
+  "wseat": [
+    "{{ SLOT_ID }}"
+  ],
+  "user": {
+    "id": "{{ USER_ID }}"
+  },
+  "device": {
+    "language": "ru",
+    "geo": {
+      "country": "RU"
+    },
+    "ip": "{{ IP_FROM_INCOMMING_REQUEST }}"
+  },
+  "tmax": 75,
+  "cur": [
+    "USD"
+  ],
+  "imp": [
+    {
+      "bidfloor": 3.213,
+      "id": "1",
+      "banner": {
+        "pos": 1,
+        "h": 600,
+        "w": 600,
+        "format": [
+          {
+            "h": 300,
+            "w": 300
+          }
+        ]
+      }
+    }
+  ],
+  "at": 1
+}
