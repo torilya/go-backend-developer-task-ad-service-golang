@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"text/template"
+	"time"
 )
 
 //goland:noinspection GoSnakeCaseUsage
@@ -96,7 +97,20 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func middlewareAccessLog(handlerNext http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		timeStart := time.Now()
+		handlerNext.ServeHTTP(writer, request)
+		log.Printf("[%s] %s, %s %s", request.Method, request.RemoteAddr, request.URL.String(),
+			time.Since(timeStart))
+	})
+}
+
 func main() {
-	http.HandleFunc("/ad", adHandler)
-	http.ListenAndServe(":8080", nil)
+	muxSite := http.NewServeMux()
+	muxSite.HandleFunc("/ad", adHandler)
+
+	handlerSite := middlewareAccessLog(muxSite)
+
+	http.ListenAndServe(":8080", handlerSite)
 }
