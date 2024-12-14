@@ -9,9 +9,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"text/template"
 	"time"
 )
+
+const pathLogs = "logs"
 
 //goland:noinspection GoSnakeCaseUsage
 type bidRequest struct {
@@ -42,7 +45,7 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 	err = os.MkdirAll("./bidRequests", os.ModePerm)
 
 	if err != nil {
-		log.Printf("[ERR] directory: %s", err)
+		log.Printf("[ERR] dir: %s", err)
 		http.Error(writer, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -111,6 +114,20 @@ func main() {
 	muxSite.HandleFunc("/ad", adHandler)
 
 	handlerSite := middlewareAccessLog(muxSite)
+
+	err := os.MkdirAll(pathLogs, os.ModePerm)
+
+	if err != nil {
+		log.Fatalf("[ERR] dir: %s", err)
+	}
+
+	logFile, err := os.Create(filepath.Join(pathLogs, time.Now().Format("20060102_150405")+".log"))
+
+	if err != nil {
+		log.Fatalf("[ERR] file: %s", err)
+	}
+
+	log.SetOutput(logFile)
 
 	http.ListenAndServe(":8080", handlerSite)
 }
