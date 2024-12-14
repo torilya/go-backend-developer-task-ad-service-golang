@@ -1,0 +1,21 @@
+{
+  "id": "IxexyLDIIk",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "1",
+          "impid": "1",
+          "price": 0.751371,
+          "burl": "http://ads.example.com/win/12345",
+          "adm": "<a href=\"http://ya.ru/\"><img src=\"http://via.placeholder.com/600x600\" width=\"600\" height=\"600\" border=\"0\" alt=\"Advertisement\" /></a>",
+          "adomain": [
+            "example.com"
+          ]
+        }
+      ],
+      "seat": "1"
+    }
+  ],
+  "cur": "USD"
+}

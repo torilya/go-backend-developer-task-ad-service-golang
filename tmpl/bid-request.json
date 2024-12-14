@@ -1,26 +1,26 @@
 {
-  "id": "{{ RANDOM_UUID }}",
+  "id": "{{ .RANDOM_UUID }}",
   "site": {
-    "id": "{{ CLIENT_ID }}",
+    "id": "{{ .CLIENT_ID }}",
     "ref": "http://example.com",
     "publisher": {
       "name": "example.com",
-      "id": "{{ CLIENT_ID }}"
+      "id": "{{ .CLIENT_ID }}"
     },
-    "name": "{{ CLIENT_ID }}"
+    "name": "{{ .CLIENT_ID }}"
   },
   "wseat": [
-    "{{ SLOT_ID }}"
+    "{{ .SLOT_ID }}"
   ],
   "user": {
-    "id": "{{ USER_ID }}"
+    "id": "{{ .USER_ID }}"
   },
   "device": {
     "language": "ru",
     "geo": {
       "country": "RU"
     },
-    "ip": "{{ IP_FROM_INCOMMING_REQUEST }}"
+    "ip": "{{ .IP_FROM_INCOMMING_REQUEST }}"
   },
   "tmax": 75,
   "cur": [
