@@ -109,11 +109,27 @@ func middlewareAccessLog(handlerNext http.Handler) http.Handler {
 	})
 }
 
+func middlewarePanic(handlerNext http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		defer func() {
+			err := recover()
+
+			if err != nil {
+				log.Printf("[ERR] panic: %s", err)
+				http.Error(writer, "Internal server error", http.StatusInternalServerError)
+			}
+		}()
+
+		handlerNext.ServeHTTP(writer, request)
+	})
+}
+
 func main() {
 	muxSite := http.NewServeMux()
 	muxSite.HandleFunc("/ad", adHandler)
 
 	handlerSite := middlewareAccessLog(muxSite)
+	handlerSite = middlewarePanic(handlerSite)
 
 	err := os.MkdirAll(pathLogs, os.ModePerm)
 
