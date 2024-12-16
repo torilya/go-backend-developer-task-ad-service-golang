@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 	"github.com/gorilla/schema"
 	"io"
@@ -14,26 +15,38 @@ import (
 	"time"
 )
 
-const pathLogs = "logs"
-
 //goland:noinspection GoSnakeCaseUsage
 type bidRequest struct {
-	RANDOM_UUID               string
-	CLIENT_ID                 int `schema:"client"`
-	SLOT_ID                   int `schema:"slot"`
-	USER_ID                   int `schema:"user"`
-	IP_FROM_INCOMMING_REQUEST string
+	RANDOM_UUID               string `schema:"-" valid:"-"`
+	CLIENT_ID                 int    `schema:"client" valid:"required"`
+	SLOT_ID                   int    `schema:"slot" valid:"required"`
+	USER_ID                   int    `schema:"user" valid:"required"`
+	IP_FROM_INCOMMING_REQUEST string `schema:"-" valid:"-"`
 }
 
 func adHandler(writer http.ResponseWriter, request *http.Request) {
 	schemaDecoder := schema.NewDecoder()
 	bidRequestData := &bidRequest{}
-	err := schemaDecoder.Decode(bidRequestData, request.URL.Query())
 
 	// НЕ КРАСИВО: НЕ ИНФОРМАТИВНО
-	if err != nil {
+	if err := schemaDecoder.Decode(bidRequestData, request.URL.Query()); err != nil {
 		log.Printf("[ERR] query values: %s", err)
 		http.Error(writer, "Invalid query values", http.StatusBadRequest)
+
+		return
+	}
+
+	// НЕ КРАСИВО: Пользователю отправляются детали реализации
+	if _, err := govalidator.ValidateStruct(bidRequestData); err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+
+		if errs, ok := err.(govalidator.Errors); ok {
+			for _, err := range errs {
+				log.Printf("[ERR] query value: %s", err)
+				fmt.Fprintf(writer, "Invalid query value: %s\n", err)
+			}
+		}
+
 		return
 	}
 
@@ -42,11 +55,10 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("tmpl/bid-request.json"))
 
-	err = os.MkdirAll("./bidRequests", os.ModePerm)
-
-	if err != nil {
+	if err := os.MkdirAll("./bidRequests", os.ModePerm); err != nil {
 		log.Printf("[ERR] dir: %s", err)
 		http.Error(writer, "Internal server error", http.StatusInternalServerError)
+
 		return
 	}
 
@@ -55,16 +67,16 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		log.Printf("[ERR] file: %s", err)
 		http.Error(writer, "Internal server error", http.StatusInternalServerError)
+
 		return
 	}
 
 	defer bidRequestFile.Close()
 
-	err = tmpl.Execute(bidRequestFile, bidRequestData)
-
-	if err != nil {
+	if err := tmpl.Execute(bidRequestFile, bidRequestData); err != nil {
 		log.Printf("[ERR] template: %s", err)
 		http.Error(writer, "Internal server error", http.StatusInternalServerError)
+
 		return
 	}
 
@@ -73,8 +85,11 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		log.Printf("[ERR] file: %s", err)
 		http.Error(writer, "Internal server error", http.StatusInternalServerError)
+
 		return
 	}
+
+	defer bidResponseFile.Close()
 
 	jsonDecoder := json.NewDecoder(bidResponseFile)
 	var tokenPrev json.Token
@@ -89,6 +104,7 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Printf("[ERR] JSON token: %s", err)
 			http.Error(writer, "Internal server error", http.StatusInternalServerError)
+
 			break
 		}
 
@@ -131,9 +147,9 @@ func main() {
 	handlerSite := middlewareAccessLog(muxSite)
 	handlerSite = middlewarePanic(handlerSite)
 
-	err := os.MkdirAll(pathLogs, os.ModePerm)
+	const pathLogs = "logs"
 
-	if err != nil {
+	if err := os.MkdirAll(pathLogs, os.ModePerm); err != nil {
 		log.Fatalf("[ERR] dir: %s", err)
 	}
 
@@ -143,7 +159,11 @@ func main() {
 		log.Fatalf("[ERR] file: %s", err)
 	}
 
+	defer logFile.Close()
+
 	log.SetOutput(logFile)
 
-	http.ListenAndServe(":8080", handlerSite)
+	const serverAddr = ":8080"
+	log.Printf("[INFO] The server is starting on %s", serverAddr)
+	http.ListenAndServe(serverAddr, handlerSite)
 }
