@@ -15,12 +15,12 @@ import (
 	"time"
 )
 
-//goland:noinspection GoSnakeCaseUsage
+//goland:noinspection GoSnakeCaseUsage,LongLine
 type bidRequest struct {
 	RANDOM_UUID               string `schema:"-" valid:"-"`
-	CLIENT_ID                 int    `schema:"client" valid:"required"`
-	SLOT_ID                   int    `schema:"slot" valid:"required"`
-	USER_ID                   int    `schema:"user" valid:"required"`
+	CLIENT_ID                 int    `schema:"client" valid:"required~The query parameter \"client\" is required"`
+	SLOT_ID                   int    `schema:"slot" valid:"required~The query parameter \"slot\" is required"`
+	USER_ID                   int    `schema:"user" valid:"required~The query parameter \"user\" is required"`
 	IP_FROM_INCOMMING_REQUEST string `schema:"-" valid:"-"`
 }
 
@@ -30,20 +30,19 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 
 	// НЕ КРАСИВО: НЕ ИНФОРМАТИВНО
 	if err := schemaDecoder.Decode(bidRequestData, request.URL.Query()); err != nil {
-		log.Printf("[ERR] query values: %s", err)
+		log.Printf("[ERR] query params: %s", err)
 		http.Error(writer, "Invalid query values", http.StatusBadRequest)
 
 		return
 	}
 
-	// НЕ КРАСИВО: Пользователю отправляются детали реализации
 	if _, err := govalidator.ValidateStruct(bidRequestData); err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 
 		if errs, ok := err.(govalidator.Errors); ok {
 			for _, err := range errs {
-				log.Printf("[ERR] query value: %s", err)
-				fmt.Fprintf(writer, "Invalid query value: %s\n", err)
+				log.Printf("[ERR] query param: %s", err)
+				fmt.Fprintf(writer, "%s\n", err)
 			}
 		}
 
@@ -166,4 +165,8 @@ func main() {
 	const serverAddr = ":8080"
 	log.Printf("[INFO] The server is starting on %s", serverAddr)
 	http.ListenAndServe(serverAddr, handlerSite)
+}
+
+func init() {
+	govalidator.SetFieldsRequiredByDefault(true)
 }
