@@ -18,9 +18,9 @@ import (
 //goland:noinspection GoSnakeCaseUsage,LongLine
 type bidRequest struct {
 	RANDOM_UUID               string `schema:"-" valid:"-"`
-	CLIENT_ID                 int    `schema:"client" valid:"required~The query parameter \"client\" is required"`
-	SLOT_ID                   int    `schema:"slot" valid:"required~The query parameter \"slot\" is required"`
-	USER_ID                   int    `schema:"user" valid:"required~The query parameter \"user\" is required"`
+	CLIENT_ID                 int    `schema:"client,required" valid:"required~The query parameter \"client\" cannot be 0"`
+	SLOT_ID                   int    `schema:"slot,required" valid:"required~The query parameter \"slot\" cannot be 0"`
+	USER_ID                   int    `schema:"user,required" valid:"required~The query parameter \"user\" cannot be 0"`
 	IP_FROM_INCOMMING_REQUEST string `schema:"-" valid:"-"`
 }
 
@@ -28,10 +28,28 @@ func adHandler(writer http.ResponseWriter, request *http.Request) {
 	schemaDecoder := schema.NewDecoder()
 	bidRequestData := &bidRequest{}
 
-	// НЕ КРАСИВО: НЕ ИНФОРМАТИВНО
 	if err := schemaDecoder.Decode(bidRequestData, request.URL.Query()); err != nil {
-		log.Printf("[ERR] query params: %s", err)
-		http.Error(writer, "Invalid query values", http.StatusBadRequest)
+		writer.WriteHeader(http.StatusBadRequest)
+
+		if errs, ok := err.(schema.MultiError); ok {
+			for _, err := range errs {
+				switch err := err.(type) {
+				case schema.UnknownKeyError:
+					log.Printf("[ERR] query param: %s", err)
+					fmt.Fprintf(writer, "The query parameter \"%s\" is unknown\n", err.Key)
+				case schema.ConversionError:
+					log.Printf("[ERR] query param: %s", err)
+					fmt.Fprintf(writer, "The query parameter \"%s\" must be %s\n", err.Key,
+						err.Type)
+				case schema.EmptyFieldError:
+					log.Printf("[ERR] query param: %s", err)
+					fmt.Fprintf(writer, "The query parameter \"%s\" is required\n", err.Key)
+				default:
+					log.Printf("[ERR] query param: %#v", err)
+					fmt.Fprintf(writer, "The query parameter is invalid\n")
+				}
+			}
+		}
 
 		return
 	}
